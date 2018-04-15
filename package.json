@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "build": "babel app.js -d bin",
+    "start": "node bin/app.js"
+  },
+  "dependencies": {
+    "minimist": "^1.2.0",
+    "mysql2": "^1.5.3",
+    "pg": "^7.4.1",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^4.37.6"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1"
+  }
+}
