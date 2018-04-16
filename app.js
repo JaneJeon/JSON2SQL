@@ -10,25 +10,25 @@ opts = {
 	host: 'localhost',
 	database: os.userInfo().username,
 	username: os.userInfo().username,
-	password: null,
-	logging: false
+	password: null
 }
 Object.assign(opts, require('minimist')(process.argv.slice(2)))
 
 const db = new Sequelize({
-	operatorsAliases: false,
+	dialect: opts.dialect.toLowerCase(),
+	host: opts.host,
 	database: opts.database,
 	username: opts.username,
 	password: opts.password,
-	host: opts.host,
-	dialect: opts.dialect.toLowerCase()
+	logging: false,
+	operatorsAliases: false
 	// if additional parameters are needed, pass them in via command-line arguments
 }),
 mysql = db.dialect.name === 'mysql'
 
 db.authenticate()
 	.catch(err => {
-		console.error(err)
+		f.printErr(err)
 		process.exit(1)
 	})
 
@@ -41,7 +41,7 @@ Promise.all(
 
 function getSchema(file) {
 	return new Promise(resolve => {
-		console.log(`processing ${file}`)
+		f.printNotice(`processing ${file}...`)
 		const limit = 1000, schema = {}, stream = f.read(file)
 		let i = 0
 		
@@ -53,7 +53,7 @@ function getSchema(file) {
 				stream.close()
 		}).on('close', () => {
 			writeCSV(schema, file).then(() => {
-				console.log(`done processing ${file}`)
+				f.printOk(`done processing ${file}`)
 				resolve()
 			})
 		})
@@ -62,20 +62,20 @@ function getSchema(file) {
 
 function writeCSV(schema, file) {
 	return new Promise(resolve => {
-		const tempfile = `${file}.csv`,
-		csv = fs.createWriteStream(tempfile, {
+		const tempfile = `${file}.csv`
+		fs.unlink(tempfile, err => {})
+		f.printNotice(`creating ${tempfile}...`)
+		
+		const csv = fs.createWriteStream(tempfile, {
 			flags: 'a'
 		})
-		
-		// write header
-		csv.write(f.generateCSV(schema, schema))
 		
 		f.read(file).on('line', line => {
 			csv.write(f.generateCSV(JSON.parse(line), schema, mysql))
 		}).on('close', () => {
 			csv.close()
 			writeTable(file, tempfile, schema).then(() => {
-				console.log(`finished creating ${tempfile}`)
+				f.printOk(`finished creating ${tempfile}`)
 				resolve()
 			})
 		})
@@ -87,14 +87,30 @@ function writeTable(file, tempfile, schema) {
 		const tablename = opts.hasOwnProperty('table')
 			? opts['table']
 			: path.parse(file).name
+		f.printNotice(`writing to table ${tablename}...`)
 		
-		db.define(tablename, schema).sync().then(() => {
-			// TODO: import CSV
+		db.define(tablename, schema, {
+			tableName: tablename,
+			timestamps: false
+		}).sync({force: true})
+		.then(() => {
+			// import CSV
+			const load = mysql 
+				? `LOAD DATA INFILE '${tempfile}' INTO "${tablename}"
+					FIELDS TERMINATED BY ',' 
+					ESCAPED BY '"'
+					OPTIONALLY ENCLOSED BY '"'` 
+				: `COPY "${tablename}" FROM '${tempfile}' 
+					DELIMITER ','`
+			
+			db.query(load)
+				.then(() => {
+					f.printOk(`finished importing data into ${tablename}`)
+				})
 		}).catch(err => {
-			console.err(err)
+			f.printErr(err)
 		}).finally(() => {
-			fs.unlink(tempfile)
-			console.log(`finished importing data into table ${tablename}`)
+			fs.unlinkSync(tempfile)
 			resolve()
 		})
 	})

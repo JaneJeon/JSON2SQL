@@ -15,26 +15,34 @@ module.exports.read = function(file) {
 	})
 }
 
+function setKey(schema, key, type) {
+	schema[key] = key.toLowerCase() === 'id'
+		? {
+			type: type,
+			primaryKey: true
+		} : type
+}
+
 module.exports.generateSchema = function(obj, schema) {
 	Object.keys(obj)
 		.filter(key => !schema.hasOwnProperty(key))
 		.forEach(key => {
 			switch (typeof obj[key]) {
 				case 'boolean':
-					schema[key] = Sequelize.DataTypes.BOOLEAN
+					setKey(schema, key, Sequelize.DataTypes.BOOLEAN)
 					break
 				case 'number':
-					schema[key] = Number.isInteger(obj[key])
+					setKey(schema, key, Number.isInteger(obj[key])
 						? Sequelize.DataTypes.INTEGER
-						: Sequelize.DataTypes.DOUBLE
+						: Sequelize.DataTypes.DOUBLE)
 					break
 				case 'string':
-					schema[key] = Sequelize.DataTypes.TEXT
+					setKey(schema, key, Sequelize.DataTypes.TEXT)
 			}
 		})
 }
 
-// quoted by "", escaped by `\`, separated by `,`
+// quoted and escaped by ", delimited by commas
 module.exports.generateCSV = function(obj, schema, mysql = false) {
 	const NULL = mysql ? '\\N' : 'NULL'
 	
@@ -43,7 +51,27 @@ module.exports.generateCSV = function(obj, schema, mysql = false) {
 		.map(data => data === null 
 			? NULL 
 			: typeof data === 'string'
-				? `"${data.replace(/"/g,'\\"')}"` 
+				// need to escape quoting characters
+				// also need to escape newlines (windows & mac versions)
+				? `"${data.replace(/"/g,'""').replace(/\r?\n|\r/g, '\\n')}"` 
 				: data)
 		.join(',') + '\n'
+}
+
+// colours for console.log
+const RED = '\x1b[31m',
+YELLOW = '\x1b[33m',
+GREEN = '\x1b[32m',
+RESET = '\x1b[0m'
+
+module.exports.printErr = function(str) {
+	console.error(RED, str, RESET)
+}
+
+module.exports.printNotice = function(str) {
+	console.log(YELLOW, str, RESET)
+}
+
+module.exports.printOk = function(str) {
+	console.log(GREEN, str, RESET)
 }
