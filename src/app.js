@@ -16,6 +16,7 @@ opts = {
 Object.assign(opts, require('minimist')(process.argv.slice(2)))
 
 const db = new Sequelize({
+	operatorsAliases: false,
 	database: opts.database,
 	username: opts.username,
 	password: opts.password,
@@ -57,10 +58,14 @@ function writeCSV(schema, file) {
 		flags: 'a'
 	})
 	
+	// write header
+	csv.write(f.generateCSV(schema, schema))
+	
 	f.read(file).on('line', line => {
 		csv.write(f.generateCSV(JSON.parse(line), schema, mysql))
 	}).on('close', () => {
 		csv.close()
+		process.exit(0)
 		writeTable(file, tempfile, schema)
 	})
 }

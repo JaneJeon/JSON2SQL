@@ -39,7 +39,7 @@ module.exports.generateCSV = function(obj, schema, mysql = false) {
 	const NULL = mysql ? '\\N' : 'NULL'
 	
 	return Object.keys(schema)
-		.map(field => obj[field])
+		.map(field => obj === schema ? field : obj[field])
 		.map(data => data === null 
 			? NULL 
 			: typeof data === 'string'
