@@ -40,8 +40,10 @@ module.exports.generateCSV = function(obj, schema, mysql = false) {
 	
 	return Object.keys(schema)
 		.map(field => obj[field])
-		.map(data => data === null ? NULL 
-			: typeof data === 'string' || data instanceof String
-				? `"${data.replace(/"/g,'\\"')}"` : data)
+		.map(data => data === null 
+			? NULL 
+			: typeof data === 'string'
+				? `"${data.replace(/"/g,'\\"')}"` 
+				: data)
 		.join(',') + '\n'
 }

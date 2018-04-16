@@ -1,9 +1,8 @@
 const fs = require('fs'),
 os = require('os'),
 path = require('path'),
-readline = require('readline'),
 Sequelize = require('sequelize'),
-f = require('helper'),
+f = require('./helper'),
 
 // defaults
 opts = {
@@ -33,31 +32,32 @@ db.authenticate()
 	})
 
 const limit = 1000
-opts._.forEach(file => {
-	file = f.absolute(file)
-	const stream = read(file), schema = {}
-	let i = 0
-	
-	// look at the first few lines to generate schema -
-	// this is mostly done to find concrete types for null fields
-	stream.on('line', line => {
-		f.generateSchema(JSON.parse(line), schema)
-		if (++i === limit)
-			stream.close()
-	}).on('close', () => {
-		writeCSV(schema, file)
+opts._
+	.map(file => f.absolute(file))
+	.forEach(file => {
+		const stream = f.read(file), schema = {}
+		let i = 0
+		
+		// look at the first few lines to generate schema -
+		// this is mostly done to find concrete types for null fields
+		stream.on('line', line => {
+			f.generateSchema(JSON.parse(line), schema)
+			if (++i === limit)
+				stream.close()
+		}).on('close', () => {
+			writeCSV(schema, file)
+		})
 	})
-})
 
 // TODO: stop when all work is done?
 
 function writeCSV(schema, file) {
 	const tempfile = `${file}.csv`,
-	csv = readline.createWriteStream(tempfile, {
+	csv = fs.createWriteStream(tempfile, {
 		flags: 'a'
 	})
 	
-	read(file).on('line', line => {
+	f.read(file).on('line', line => {
 		csv.write(f.generateCSV(JSON.parse(line), schema, mysql))
 	}).on('close', () => {
 		csv.close()
