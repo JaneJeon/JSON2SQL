@@ -65,7 +65,6 @@ function writeCSV(schema, file) {
 		csv.write(f.generateCSV(JSON.parse(line), schema, mysql))
 	}).on('close', () => {
 		csv.close()
-		process.exit(0)
 		writeTable(file, tempfile, schema)
 	})
 }
