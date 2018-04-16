@@ -1,5 +1,5 @@
 const assert = require('assert'),
-f = require('../src/helper'), 
+f = require('../helper'), 
 parse = require('csv-parse/lib/sync'),
 Sequelize = require('sequelize'),
 
@@ -68,6 +68,7 @@ describe('Schema', function() {
 			return parse(input, {escape: '\\'})[0]
 		}
 		
+		// if the strings are not escaped well, it will result in different number of fields
 		it('should be comma separated values', function() {
 			numFields = Object.keys(schema).length
 			parsed1 = CSVparse(f.generateCSV(comment1, schema))
@@ -77,29 +78,17 @@ describe('Schema', function() {
 			assert.equal(parsed2.length, numFields)
 		})
 		
-		it('should generate the CSV in the order of the fields in schema ' +
-			'and not change commaless strings, numbers, and booleans that are not null', function() {
-			const untouched = ['parent_id', 'name', 'created_utc', 'score', 'subreddit', 'retrieved_on', 'edited']
-			
+		it('should generate the CSV in the order of the fields in schema', function() {
 			for (var i = 0; i < numFields; i++) {
 				const field = Object.keys(schema)[i]
 				
-				if (untouched.includes(field)) {
-					// the CSV parsing library converts *everything* to a field. Not my fault.
+				// skip the NULL tests for now
+				if (field !== 'author_flair_text' && field !== 'distinguished') {
+					// the CSV parsing library converts *everything* to a string. Not my fault.
 					assert.equal(parsed1[i], '' + comment1[field])
 					assert.equal(parsed2[i], '' + comment2[field])
 				}
 			}
-		})
-		
-		it('should escape commas', function() {
-			assert.equal(parsed2.includes('Sorry, no comparison comics.'), true)
-		})
-		
-		it('should not escape double quotes', function() {
-			assert.equal(
-				parsed1.includes('Gas demand will "skyrocket", what do you think gas prices will look like?'),
-				true)
 		})
 		
 		it('should replace null for "NULL" in non-mysql dialects', function() {
