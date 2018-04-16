@@ -16,13 +16,13 @@ opts = {
 Object.assign(opts, require('minimist')(process.argv.slice(2)))
 
 const db = new Sequelize({
-		operatorsAliases: false,
-		database: opts.database,
-		username: opts.username,
-		password: opts.password,
-		host: opts.host,
-		dialect: opts.dialect.toLowerCase()
-		// if additional parameters are needed, pass them in via command-line arguments
+	operatorsAliases: false,
+	database: opts.database,
+	username: opts.username,
+	password: opts.password,
+	host: opts.host,
+	dialect: opts.dialect.toLowerCase()
+	// if additional parameters are needed, pass them in via command-line arguments
 }),
 mysql = db.dialect.name === 'mysql'
 
