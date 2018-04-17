@@ -47,6 +47,9 @@ function setKey(schema, key, type) {
 
 module.exports.isValid = function(obj, schema) {
 	for (const field in schema) {
+		if (field.toLowerCase() !== 'id' && (!obj.hasOwnProperty(field) || obj[field] === null))
+			continue
+		
 		const x = obj[field],
 		type = typeof schema[field] === 'object'
 			? schema[field]['type'] // it's a primary key
@@ -81,12 +84,12 @@ module.exports.generateCSV = function(obj, schema, mysql = false) {
 	
 	return Object.keys(schema)
 		.map(field => obj === schema ? field : obj[field])
-		.map(data => data === null 
-			? NULL 
+		.map(data => data === null || data === undefined
+			? NULL
 			: typeof data === 'string'
 				// need to escape quoting characters
 				// also need to escape newlines (windows & mac versions)
-				? `"${data.replace(/"/g,'""').replace(/\r?\n|\r/g, '\\n')}"` 
+				? `"${data.replace(/"/g,'""').replace(/\r?\n|\r/g, '\\n')}"`
 				: data)
 		.join(',') + '\n'
 }

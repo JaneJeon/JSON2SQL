@@ -11,7 +11,8 @@ opts = {
 	database: os.userInfo().username,
 	username: os.userInfo().username,
 	password: null,
-	limit: 1000
+	limit: 1000,
+	k: false
 }
 Object.assign(opts, require('minimist')(process.argv.slice(2)))
 
@@ -23,7 +24,6 @@ const db = new Sequelize({
 	password: opts.password,
 	logging: false,
 	operatorsAliases: false
-	// if additional parameters are needed, pass them in via command-line arguments
 }),
 // MySQL represents NULLs differently
 mysql = db.dialect.name === 'mysql'
@@ -86,7 +86,8 @@ function writeCSV(schema, file) {
 			
 			writeTable(file, tempfile, schema).then(() => {
 				f.printOk(`Finished using ${tempfile}. Deleting...`)
-				fs.unlinkSync(tempfile)
+				if (!opts.k)
+					fs.unlinkSync(tempfile)
 				resolve()
 			})
 		})
