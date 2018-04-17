@@ -1,8 +1,12 @@
 const fs = require('fs'),
 os = require('os'),
 path = require('path'),
+CSV = require('./src/csv'),
+F = require('./src/util'),
+Path = require('./src/path'),
+Record = require('./src/record'),
+Schema = require('./src/schema'),
 Sequelize = require('sequelize'),
-f = require('./helper'),
 
 // defaults
 opts = {
@@ -30,104 +34,114 @@ mysql = db.dialect.name === 'mysql'
 
 db.authenticate()
 	.catch(err => {
-		f.printErr(err)
+		F.printErr(err)
 		process.exit(1)
 	})
 
 Promise.all(
 	opts._
-		.map(file => f.absolute(file))
+		.map(file => Path.absolute(file))
 		.filter(file => fs.existsSync(file))
-		.map(file => getSchema(file))
+		.map(file => createSchema(file))
 ).then(() => process.exit(0))
 
-function getSchema(file) {
+function createSchema(file) {
 	return new Promise(resolve => {
-		f.printNotice(`Processing ${file}...`)
-		const schema = {}, stream = f.read(file)
+		F.printNotice(`Processing ${file}...`)
+		const schema = {}, stream = F.read(file)
 		let i = 0
 		
 		// look at the first few lines to generate schema -
 		// this is mostly done to find concrete types for null fields
 		stream.on('line', line => {
-			f.generateSchema(JSON.parse(line), schema)
+			Schema.update(JSON.parse(line), schema)
 			if (++i === opts.limit)
 				stream.close()
 		}).on('close', () => {
-			writeCSV(schema, file).then(() => {
-				f.printOk(`Done processing ${file}`)
+			createCSV(schema, file).then(() => {
+				F.printOk(`Done processing ${file}.`)
 				resolve()
 			})
 		})
 	})
 }
 
-function writeCSV(schema, file) {
+function createCSV(schema, file) {
 	return new Promise(resolve => {
 		const tempfile = `${file}.csv`
 		fs.unlink(tempfile, err => {})
-		f.printNotice(`Creating ${tempfile}...`)
+		F.printNotice(`Creating ${tempfile}...`)
 		
 		const csv = fs.createWriteStream(tempfile, {
 			flags: 'a'
 		})
 		
-		f.read(file).on('line', line => {
+		F.read(file).on('line', line => {
 			// validate the row against the data types in schema before putting it in,
 			// since Postgres has no way of rejecting shitty data
 			const obj = JSON.parse(line)
 			
-			if (f.isValid(obj, schema))
-				csv.write(f.generateCSV(obj, schema, mysql))
+			if (Record.isValid(obj, schema))
+				csv.write(CSV.convert(obj, schema, mysql))
 			else // spit out invalid lines so that the user may fix them
-				f.printErr(`Invalid line: ${line}`)
+				F.printErr(`Invalid line: ${line}`)
 		}).on('close', () => {
 			csv.close()
 			
-			writeTable(file, tempfile, schema).then(() => {
-				f.printOk(`Finished using ${tempfile}. Deleting...`)
-				if (!opts.k)
+			createTable(file, tempfile, schema).then(() => {
+				F.printOk(`Done processing ${tempfile}.`)
+				if (!opts.k) {
 					fs.unlinkSync(tempfile)
+					F.printNotice(`Deleted ${tempfile}.`)
+				}
 				resolve()
 			})
 		})
 	})
 }
 
-function writeTable(file, tempfile, schema) {
+function createTable(file, tempfile, schema) {
 	return new Promise(resolve => {
 		const tablename = opts.hasOwnProperty('table')
 			? opts['table']
 			: path.parse(file).name
-		f.printNotice(`Loading data into table ${tablename}...`)
+		F.printNotice(`Creating table ${tablename}...`)
 		
 		db.define(tablename, schema, {
-			// you need to specify the table name, else Sequelize goes apeshit
+			// you need to specify the table name, else sequelize goes apeshit
 			tableName: tablename,
-			// you also need to disable timestamps, because Sequelize wants to add
+			// you also need to disable timestamps, because sequelize wants to add
 			// two columns silently, and then bitches about it when you don't provide values for them
 			timestamps: false
 		}).sync({force: true})
-		.then(() => { // import CSV
-			const load = mysql 
-				? `LOAD DATA INFILE '${tempfile}' INTO "${tablename}"
-					FIELDS TERMINATED BY ',' 
+		.then(() => {
+			ingest(file, tempfile, tablename).then(() => {
+				F.printOk(`Done processing ${tablename}.`)
+				resolve()
+			})
+		})
+	})
+}
+
+function ingest(file, tempfile, tablename) {
+	return new Promise(resolve => {
+		F.printNotice(`Loading data into ${tablename}`)
+		const load = mysql
+			? `LOAD DATA INFILE '${tempfile}' INTO "${tablename}"
+					FIELDS TERMINATED BY ','
 					ESCAPED BY '"'
 					OPTIONALLY ENCLOSED BY '"'`
-				: `COPY "${tablename}" FROM '${tempfile}' 
+			: `COPY "${tablename}" FROM '${tempfile}'
 					DELIMITER ','
 					CSV` // **MUST** specify the CSV, even though I set the delimiter!!! Fucking Postgres...
-			
-			db.query(load)
-				.then(() => {
-					f.printOk(`Finished loading data into ${tablename}`)
-				}).catch(err => {
-					f.printErr(err)
-				}).finally(() => {
-					resolve()
-				})
-		})
-		// for some reason, when I put error handling code down here,
-		// it eats all of the error from above, too.
+		
+		db.query(load)
+			.then(() => {
+				F.printOk(`Finished loading data into ${tablename}`)
+			}).catch(err => {
+				F.printErr(err)
+			}).finally(() => {
+				resolve()
+			})
 	})
 }

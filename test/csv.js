@@ -1,92 +1,9 @@
 const assert = require('assert'),
-f = require('../helper'),
-parse = require('csv-parse/lib/sync'),
-sequelize = require('sequelize')
+CSV = require('../src/csv'),
+parse = require('csv-parse/lib/sync')
 
 describe('CSV', () => {
-	describe('#isValid()', () => {
-		const schema = {
-			boolField: sequelize.DataTypes.BOOLEAN,
-			intField: sequelize.DataTypes.INTEGER,
-			floatField: sequelize.DataTypes.DOUBLE,
-			stringField: sequelize.DataTypes.TEXT
-		},
-		nullField = {
-			boolField: null
-		},
-		incorrectBool = {
-			boolField: 0
-		},
-		incorrectInt = {
-			intField: 42.1
-		},
-		incorrectFloat = {
-			floatField: 42
-		},
-		incorrectString = {
-			stringField: true
-		},
-		idSchema = {
-			id: {
-				type: sequelize.DataTypes.INTEGER,
-				primaryKey: true
-			}
-		},
-		incorrectId = {
-			id: '42'
-		},
-		correctId = {
-			id: 42
-		}
-		
-		function correct() {
-			return {
-				boolField: true,
-				intField: 42,
-				floatField: 42.1,
-				stringField: 'foo'
-			}
-		}
-		
-		it('should compare the data types of fields', () => {
-			assert.equal(f.isValid(correct(), schema), true)
-			assert.equal(f.isValid(Object.assign(correct(), incorrectBool), schema), false)
-			assert.equal(f.isValid(Object.assign(correct(), incorrectInt), schema), false)
-			assert.equal(f.isValid(Object.assign(correct(), incorrectFloat), schema), false)
-		})
-		
-		it('should implicitly convert string types', () => {
-			const obj = correct()
-			
-			assert.equal(f.isValid(obj, schema), true)
-			assert.strictEqual(obj['stringField'], correct()['stringField'])
-			
-			assert.equal(f.isValid(Object.assign(obj, incorrectString), schema), true)
-			assert.strictEqual(typeof obj['stringField'], 'string')
-		})
-		
-		it('should not reject null values', () => {
-			assert.equal(f.isValid(Object.assign(correct(), nullField), schema), true)
-		})
-		
-		it('should be aware that primary keys are wrapped in objects', () => {
-			assert.equal(f.isValid(Object.assign(correct(), correctId), Object.assign(schema, idSchema)), true)
-			assert.equal(f.isValid(Object.assign(correct(), incorrectId), schema), false)
-		})
-		
-		it('should reject objects that are missing the id field', () => {
-			assert.equal(f.isValid(correct(), schema), false)
-		})
-		
-		it('should not reject objects that are missing other fields', () => {
-			const obj = Object.assign(correct(), correctId)
-			delete obj['intField']
-			
-			assert.equal(f.isValid(obj, schema), true)
-		})
-	})
-	
-	describe('#generateCSV()', () => {
+	describe('#convert()', () => {
 		let parsed, nullIndex
 		const schema = {
 			boolField: null,
@@ -118,7 +35,7 @@ describe('CSV', () => {
 		
 		// if the strings are not escaped well, it will result in different number of fields
 		it('should be comma separated values', () => {
-			parsed = CSVparse(f.generateCSV(obj, schema))
+			parsed = CSVparse(CSV.convert(obj, schema))
 			
 			assert.equal(parsed.length, numFields)
 		})
@@ -143,7 +60,7 @@ describe('CSV', () => {
 		})
 		
 		it('should replace null with \\N in mysql dialect', () => {
-			const csvmysql = CSVparse(f.generateCSV(obj, schema, true))
+			const csvmysql = CSVparse(CSV.convert(obj, schema, true))
 			
 			assert.equal(csvmysql[nullIndex], '\\N')
 		})

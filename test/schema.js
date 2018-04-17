@@ -1,9 +1,9 @@
 const assert = require('assert'),
-f = require('../helper'),
+Schema = require('../src/schema')
 sequelize = require('sequelize')
 
 describe('Schema', () => {
-	describe('#generateSchema()', () => {
+	describe('#update()', () => {
 		const schema = {},
 		obj1 = {
 			boolField: false,
@@ -18,7 +18,7 @@ describe('Schema', () => {
 		}
 		
 		it('should pick up non-null fields', () => {
-			f.generateSchema(obj1, schema)
+			Schema.update(obj1, schema)
 			
 			assert.strictEqual(schema['boolField'], sequelize.DataTypes.BOOLEAN)
 			assert.strictEqual(schema['intField1'], sequelize.DataTypes.INTEGER)
@@ -32,7 +32,7 @@ describe('Schema', () => {
 		})
 		
 		it('should fill in null field, given a value', () => {
-			f.generateSchema(obj2, schema)
+			Schema.update(obj2, schema)
 			
 			assert.strictEqual(schema['nullField'], sequelize.DataTypes.TEXT)
 		})
@@ -44,7 +44,7 @@ describe('Schema', () => {
 			}
 			
 			it('should specify primary key for field named id', () => {
-				f.generateSchema(obj, schema)
+				Schema.update(obj, schema)
 				
 				assert.strictEqual(schema['id']['type'], sequelize.DataTypes.INTEGER)
 				assert.strictEqual(schema['id']['primaryKey'], true)

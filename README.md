@@ -30,21 +30,25 @@ Note that a lot of the paramters have sensible defaults:
 Here are the flags (note: appended with single dash) you can pass in:
 - `k`: keep the CSV file generated as the intermediary step in ingesting data
 
+### Testing
+Run `yarn test` after installing the dependencies.
+
 ### Up Next
-- [] Add support for custom ports, not just the dialect defaults
-- [] Make password be typed in, instead of being passed from command line
-- [] Add option to specify which columns to exclude (if at all)
-- [] Support defaults for invalid fields
-- [] Random sampling + count-based schema analysis
-- [] Allow types to be passed in as arguments
-- [] Auto detect and convert unix epoch to timestamp
-- [] Detect the appropriate string data type based on max length within a column
-- [] Add support for more data types (arrays, enums, etc)
-- [] Add support for nested data/JSON column
-- [] Allow direct ingesting over HTTP (eg. Filebeat/Logstash)
-- [] Front-end UI (either electron or browser)
-- [] (up for debate) Self-healing/limited implicit casting
-- [] (up for debate) JDBC support?
+- [ ] Add support for custom ports, not just the dialect defaults
+- [ ] Make password be typed in, instead of being passed from command line
+- [ ] Add option to specify which columns to exclude (if at all)
+- [ ] Support defaults for invalid fields
+- [ ] Add chunking huge files
+- [ ] Random sampling + count-based schema analysis
+- [ ] Allow types to be passed in as arguments
+- [ ] Auto detect and convert timestamps
+- [ ] Detect the appropriate string data type based on max length within a column
+- [ ] Add support for more data types (arrays, enums, etc)
+- [ ] Add support for nested data/JSON column
+- [ ] Allow direct ingesting over HTTP (eg. Filebeat/Logstash)
+- [ ] Front-end UI (either electron or browser)
+- [ ] (up for debate) Self-healing/limited implicit casting
+- [ ] (up for debate) JDBC support?
 
 #### Relevant Links
 - https://www.postgresql.org/docs/current/static/sql-copy.html

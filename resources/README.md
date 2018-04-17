@@ -1,0 +1,1 @@
+`RC_2007-03` is a sample dataset from http://files.pushshift.io/reddit/comments. It contains records of *all* Reddit comments made on 2007 March. It is small enough that it can be easily used to simulate "real-world" scenarios in testing the ingestion process.
