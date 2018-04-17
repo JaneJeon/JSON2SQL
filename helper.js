@@ -15,14 +15,6 @@ module.exports.read = function(file) {
 	})
 }
 
-function setKey(schema, key, type) {
-	schema[key] = key.toLowerCase() === 'id'
-		? {
-			type: type,
-			primaryKey: true
-		} : type
-}
-
 module.exports.generateSchema = function(obj, schema) {
 	Object.keys(obj)
 		.filter(key => !schema.hasOwnProperty(key))
@@ -40,6 +32,47 @@ module.exports.generateSchema = function(obj, schema) {
 					setKey(schema, key, Sequelize.DataTypes.TEXT)
 			}
 		})
+}
+
+// Postgres FORCES any column named 'id' to be a primary key,
+// and to do that, you need to specifically mark it as being one for Sequelize.
+// And of course, since we're treating 'id' column differently,
+// we must treat it differently in *every other function* as well...
+function setKey(schema, key, type) {
+	schema[key] = key.toLowerCase() === 'id'
+		? { type: type,
+			primaryKey: true }
+		: type
+}
+
+module.exports.isValid = function(obj, schema) {
+	for (const field in schema) {
+		const x = obj[field],
+		type = typeof schema[field] === 'object'
+			? schema[field]['type'] // it's a primary key
+			: schema[field]
+		
+		switch (type) {
+			case Sequelize.DataTypes.BOOLEAN:
+				if (typeof x !== 'boolean')
+					return false
+				break
+			case Sequelize.DataTypes.INTEGER:
+				if (x !== +x || x !== (x | 0))
+					return false
+				break
+			case Sequelize.DataTypes.DOUBLE:
+				if (x !== +x || x === (x | 0))
+					return false
+				break
+			case Sequelize.DataTypes.TEXT:
+				// when string, just implicitly convert to string
+				if (typeof x !== 'string')
+					obj[field] = `${x}`
+		}
+	}
+	
+	return true
 }
 
 // quoted and escaped by ", delimited by commas

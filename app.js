@@ -10,7 +10,8 @@ opts = {
 	host: 'localhost',
 	database: os.userInfo().username,
 	username: os.userInfo().username,
-	password: null
+	password: null,
+	limit: 1000
 }
 Object.assign(opts, require('minimist')(process.argv.slice(2)))
 
@@ -24,6 +25,7 @@ const db = new Sequelize({
 	operatorsAliases: false
 	// if additional parameters are needed, pass them in via command-line arguments
 }),
+// MySQL represents NULLs differently
 mysql = db.dialect.name === 'mysql'
 
 db.authenticate()
@@ -41,19 +43,19 @@ Promise.all(
 
 function getSchema(file) {
 	return new Promise(resolve => {
-		f.printNotice(`processing ${file}...`)
-		const limit = 1000, schema = {}, stream = f.read(file)
+		f.printNotice(`Processing ${file}...`)
+		const schema = {}, stream = f.read(file)
 		let i = 0
 		
 		// look at the first few lines to generate schema -
 		// this is mostly done to find concrete types for null fields
 		stream.on('line', line => {
 			f.generateSchema(JSON.parse(line), schema)
-			if (++i === limit)
+			if (++i === opts.limit)
 				stream.close()
 		}).on('close', () => {
 			writeCSV(schema, file).then(() => {
-				f.printOk(`done processing ${file}`)
+				f.printOk(`Done processing ${file}`)
 				resolve()
 			})
 		})
@@ -64,18 +66,27 @@ function writeCSV(schema, file) {
 	return new Promise(resolve => {
 		const tempfile = `${file}.csv`
 		fs.unlink(tempfile, err => {})
-		f.printNotice(`creating ${tempfile}...`)
+		f.printNotice(`Creating ${tempfile}...`)
 		
 		const csv = fs.createWriteStream(tempfile, {
 			flags: 'a'
 		})
 		
 		f.read(file).on('line', line => {
-			csv.write(f.generateCSV(JSON.parse(line), schema, mysql))
+			// validate the row against the data types in schema before putting it in,
+			// since Postgres has no way of rejecting shitty data
+			const obj = JSON.parse(line)
+			
+			if (f.isValid(obj, schema))
+				csv.write(f.generateCSV(obj, schema, mysql))
+			else // spit out invalid lines so that the user may fix them
+				f.printErr(`Invalid line: ${line}`)
 		}).on('close', () => {
 			csv.close()
+			
 			writeTable(file, tempfile, schema).then(() => {
-				f.printOk(`finished creating ${tempfile}`)
+				f.printOk(`Finished using ${tempfile}. Deleting...`)
+				fs.unlinkSync(tempfile)
 				resolve()
 			})
 		})
@@ -87,31 +98,35 @@ function writeTable(file, tempfile, schema) {
 		const tablename = opts.hasOwnProperty('table')
 			? opts['table']
 			: path.parse(file).name
-		f.printNotice(`writing to table ${tablename}...`)
+		f.printNotice(`Loading data into table ${tablename}...`)
 		
 		db.define(tablename, schema, {
+			// you need to specify the table name, else Sequelize goes apeshit
 			tableName: tablename,
+			// you also need to disable timestamps, because Sequelize wants to add
+			// two columns silently, and then bitches about it when you don't provide values for them
 			timestamps: false
 		}).sync({force: true})
-		.then(() => {
-			// import CSV
+		.then(() => { // import CSV
 			const load = mysql 
 				? `LOAD DATA INFILE '${tempfile}' INTO "${tablename}"
 					FIELDS TERMINATED BY ',' 
 					ESCAPED BY '"'
-					OPTIONALLY ENCLOSED BY '"'` 
+					OPTIONALLY ENCLOSED BY '"'`
 				: `COPY "${tablename}" FROM '${tempfile}' 
-					DELIMITER ','`
+					DELIMITER ','
+					CSV` // **MUST** specify the CSV, even though I set the delimiter!!! Fucking Postgres...
 			
 			db.query(load)
 				.then(() => {
-					f.printOk(`finished importing data into ${tablename}`)
+					f.printOk(`Finished loading data into ${tablename}`)
+				}).catch(err => {
+					f.printErr(err)
+				}).finally(() => {
+					resolve()
 				})
-		}).catch(err => {
-			f.printErr(err)
-		}).finally(() => {
-			fs.unlinkSync(tempfile)
-			resolve()
 		})
+		// for some reason, when I put error handling code down here,
+		// it eats all of the error from above, too.
 	})
 }
