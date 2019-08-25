@@ -9,7 +9,7 @@
     "mysql2": "^1.5.3",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
-    "sequelize": "^5.3.0"
+    "sequelize": "^5.16.0"
   },
   "devDependencies": {
     "csv-parse": "^2.2.0",
