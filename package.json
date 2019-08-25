@@ -12,7 +12,7 @@
     "sequelize": "^5.16.0"
   },
   "devDependencies": {
-    "csv-parse": "^2.2.0",
+    "csv-parse": "^4.4.5",
     "mocha": "^5.1.0"
   }
 }
