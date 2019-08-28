@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "minimist": "^1.2.0",
-    "mysql2": "^1.6.5",
+    "mysql2": "^1.7.0",
     "pg": "^7.12.1",
     "pg-hstore": "^2.3.3",
     "sequelize": "^5.16.0"
