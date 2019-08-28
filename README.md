@@ -1,5 +1,7 @@
-JSON2SQL
----
+# JSON2SQL
+
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=JaneJeon/JSON2SQL)](https://dependabot.com)
+
 A generalized way of ingesting *any* JSON files (where every line is a JSON object) into structured tables in relational databases (MySQL, Postgres). It also cleans up dirty data and validates data types, so you'll still get a clean import no matter how spotty or irregular the data is.
 
 It can ingest even large files (10G+) in a reasonable time - much faster than having to *properly* ingest it through a NoSQL store! Instead, this program converts your JSON files into a validated, structured CSV, with proper columns and data types, and lets your database ingest them extremely quickly via either `LOAD DATA INFILE` in *MySQL* or `COPY` in *Postgres*.
