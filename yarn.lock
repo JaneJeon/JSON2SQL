@@ -602,9 +602,9 @@ sequelize-pool@^2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-2.3.0.tgz#64f1fe8744228172c474f530604b6133be64993d"
 
-sequelize@^5.19.3:
-  version "5.19.3"
-  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-5.19.3.tgz#461f05d5b68888298e6162ffd63695f89eebe9cd"
+sequelize@^5.19.6:
+  version "5.19.6"
+  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-5.19.6.tgz#4d72bb17e3e96d51bdd33a3afa0d5b0bc14fc8a4"
   dependencies:
     bluebird "^3.5.0"
     cls-bluebird "^2.1.0"
