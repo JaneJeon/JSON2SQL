@@ -13,6 +13,6 @@
   },
   "devDependencies": {
     "csv-parse": "^4.8.5",
-    "mocha": "^7.0.0"
+    "mocha": "^7.0.1"
   }
 }
